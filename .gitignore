@@ -1,2 +1,6 @@
 .history
-node_modules
+node_modules/
+.next/
+.env.local
+.env.*
+.DS_Store
