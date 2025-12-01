@@ -1,5 +1,13 @@
 import { defineConfig } from 'vitest/config'
 import path from 'node:path'
+import { config as loadEnv } from 'dotenv'
+import fs from 'node:fs'
+
+const envFile = ['.env.test', '.env.local', '.env'].find((file) => fs.existsSync(path.resolve(process.cwd(), file)))
+
+if (envFile) {
+  loadEnv({ path: envFile })
+}
 
 const resolve = (...segments: string[]) => path.resolve(process.cwd(), ...segments)
 

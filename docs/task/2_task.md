@@ -6,41 +6,50 @@
 
 ### 관련 파일
 - `supabase/migrations/` - 데이터베이스 마이그레이션 파일
+- `supabase/config.toml` - 로컬 Supabase 프로젝트 설정
+- `supabase/migrations/20251201150933_core_tables.sql` - 핵심 테이블 생성 스크립트
 - `lib/supabase/client.ts` - Supabase 클라이언트 설정
 - `lib/supabase/server.ts` - Supabase 서버 클라이언트
+- `lib/supabase/health-check.ts` - Supabase 연결 헬스 체크 유틸
 - `types/database.types.ts` - 데이터베이스 타입 정의
 - `middleware.ts` - 인증 미들웨어
 - `app/auth/` - 인증 관련 페이지
+- `.env.example` - 환경 변수 템플릿
+- `tests/supabase/connection.test.ts` - Supabase 연결 테스트
+- `tests/supabase/schema.test.ts` - 테이블 스키마 가용성 테스트
+- `vitest.config.ts` - Vitest 환경 변수 로딩 설정
+- `package.json` - dotenv devDependency 추가
+- `package-lock.json` - 패키지 잠금 파일 업데이트
 
 ---
 
 ## 작업
 
 - [ ] 2.0 데이터베이스 스키마 및 인증 시스템 구축 (Push 단위)
-    - [ ] 2.1 Supabase 프로젝트 생성 및 연결 (커밋 단위)
-        - [ ] 2.1.1 Supabase 대시보드에서 새 프로젝트 생성
-        - [ ] 2.1.2 프로젝트 URL 및 API 키를 `.env.local`에 저장
-        - [ ] 2.1.3 Supabase CLI 설치 (`npm install -g supabase`)
-        - [ ] 2.1.4 `supabase init` 실행 (로컬 설정)
-        - [ ] 2.1.5 Supabase 연결 테스트
-            - [ ] 2.1.5.1 테스트 코드 작성 - Supabase 클라이언트 연결 확인
-            - [ ] 2.1.5.2 테스트 실행 및 검증
-            - [ ] 2.1.5.3 오류 수정 (필요 시)
+    - [x] 2.1 Supabase 프로젝트 생성 및 연결 (커밋 단위)
+        - [x] 2.1.1 Supabase 대시보드에서 새 프로젝트 생성 (`project_id=BNK_hackton`)
+        - [x] 2.1.2 프로젝트 URL 및 API 키를 `.env.local`에 저장 (`.env.example` 템플릿 추가)
+        - [x] 2.1.3 Supabase CLI 설치 (`npx supabase --version` = 2.64.2)
+        - [x] 2.1.4 `supabase init` 실행 (로컬 설정 `supabase/config.toml` 확인)
+        - [x] 2.1.5 Supabase 연결 테스트
+            - [x] 2.1.5.1 테스트 코드 작성 - Supabase 클라이언트 연결 확인 (`tests/supabase/connection.test.ts`)
+            - [x] 2.1.5.2 테스트 실행 및 검증 (`npm run test -- tests/supabase/connection.test.ts`)
+            - [x] 2.1.5.3 오류 수정 (필요 시)
     
-    - [ ] 2.2 핵심 데이터베이스 테이블 생성 (커밋 단위)
-        - [ ] 2.2.1 `users` 테이블 생성 (id, email, phone, name, role)
-        - [ ] 2.2.2 `transactions` 테이블 생성 (PRD 6.1 참조)
+    - [x] 2.2 핵심 데이터베이스 테이블 생성 (커밋 단위)
+        - [x] 2.2.1 `users` 테이블 생성 (id, email, phone, name, role) — `20251201150933_core_tables.sql`
+        - [x] 2.2.2 `transactions` 테이블 생성 (PRD 6.1 참조)
             - amount, merchant_name, merchant_category
             - risk_score, risk_level, risk_reasons (JSONB)
             - status, voice_call_sid, voice_responses (JSONB)
             - guardian_id, guardian_action
-        - [ ] 2.2.3 `voice_calls` 테이블 생성 (call_sid, duration, responses, recording_url)
-        - [ ] 2.2.4 `guardians` 테이블 생성 (user_id, guardian_id, permissions JSONB, status)
-        - [ ] 2.2.5 `alerts` 테이블 생성 (user_id, guardian_id, transaction_id, type, severity)
-        - [ ] 2.2.6 테이블 생성 확인
-            - [ ] 2.2.6.1 테스트 코드 작성 - 테이블 스키마 검증
-            - [ ] 2.2.6.2 테스트 실행 및 검증
-            - [ ] 2.2.6.3 오류 수정 (필요 시)
+        - [x] 2.2.3 `voice_calls` 테이블 생성 (call_sid, duration, responses, recording_url)
+        - [x] 2.2.4 `guardians` 테이블 생성 (user_id, guardian_id, permissions JSONB, status)
+        - [x] 2.2.5 `alerts` 테이블 생성 (user_id, guardian_id, transaction_id, type, severity)
+        - [x] 2.2.6 테이블 생성 확인
+            - [x] 2.2.6.1 테스트 코드 작성 - 테이블 스키마 검증 (`tests/supabase/schema.test.ts`)
+            - [x] 2.2.6.2 테스트 실행 및 검증 (`npm run test -- tests/supabase/connection.test.ts tests/supabase/schema.test.ts`)
+            - [x] 2.2.6.3 오류 수정 (필요 시)
     
     - [ ] 2.3 인덱스 및 제약조건 설정 (커밋 단위)
         - [ ] 2.3.1 `transactions` 인덱스 생성 (user_id, created_at DESC)
