@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { MERCHANT_CATEGORIES, paymentSimulatorSchema } from '@/components/PaymentSimulator'
+import {
+  MERCHANT_CATEGORIES,
+  QUICK_SCENARIOS,
+  getQuickScenarioValues,
+  paymentSimulatorSchema,
+} from '@/lib/payment-simulator'
 
 const validPayload = {
   amount: 5000,
@@ -44,5 +49,25 @@ describe('paymentSimulatorSchema', () => {
     if (!result.success) {
       expect(result.error.flatten().fieldErrors.hour?.[0]).toContain('0-23')
     }
+  })
+})
+
+describe('quick scenario presets', () => {
+  it('exposes the expected three presets', () => {
+    expect(QUICK_SCENARIOS).toHaveLength(3)
+    expect(QUICK_SCENARIOS.map((scenario) => scenario.id)).toContain('normal')
+    expect(QUICK_SCENARIOS.map((scenario) => scenario.id)).toContain('high')
+    expect(QUICK_SCENARIOS.map((scenario) => scenario.id)).toContain('night')
+  })
+
+  it('provides schema-valid values for each preset', () => {
+    QUICK_SCENARIOS.forEach((scenario) => {
+      const result = paymentSimulatorSchema.safeParse(scenario.values)
+      expect(result.success).toBe(true)
+    })
+  })
+
+  it('returns undefined for unknown presets', () => {
+    expect(getQuickScenarioValues('unknown')).toBeUndefined()
   })
 })

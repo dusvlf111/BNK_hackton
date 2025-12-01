@@ -3,37 +3,18 @@
 import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import {
+  MERCHANT_CATEGORIES,
+  QUICK_SCENARIOS,
+  getQuickScenarioValues,
+  paymentSimulatorSchema,
+  type PaymentSimulatorFormValues,
+  type QuickScenarioId,
+} from '@/lib/payment-simulator'
 import type { PaymentSimulationInput } from '@/types/transaction.types'
-
-export const MERCHANT_CATEGORIES = [
-  '편의점',
-  '마트/대형유통',
-  '식당/카페',
-  '온라인쇼핑',
-  '병원/약국',
-  '교통/모빌리티',
-  '교육',
-  '문화/여가',
-  '해외결제',
-  '금융서비스',
-  '공공요금',
-  '기타',
-] as const
-
-export const paymentSimulatorSchema = z.object({
-  amount: z.coerce.number().min(1_000, '금액은 최소 1,000원 이상이어야 합니다.').max(10_000_000, '금액은 최대 10,000,000원까지 입력 가능합니다.'),
-  merchant_name: z.string().min(1, '가맹점명을 입력하세요.').max(50, '가맹점명은 50자 이내여야 합니다.'),
-  merchant_category: z.enum(MERCHANT_CATEGORIES, {
-    errorMap: () => ({ message: '가맹점 업종을 선택하세요.' }),
-  }),
-  hour: z.coerce.number().min(0, '시간은 0-23 범위여야 합니다.').max(23, '시간은 0-23 범위여야 합니다.'),
-})
-
-export type PaymentSimulatorFormValues = z.infer<typeof paymentSimulatorSchema>
 
 interface PaymentSimulatorProps {
   onSubmit: (values: PaymentSimulationInput) => Promise<void> | void
@@ -47,6 +28,7 @@ export function PaymentSimulator({ onSubmit, defaultValues, isSubmitting }: Paym
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isValid, isSubmitting: formSubmitting },
   } = useForm<PaymentSimulatorFormValues>({
     resolver: zodResolver(paymentSimulatorSchema),
@@ -65,6 +47,14 @@ export function PaymentSimulator({ onSubmit, defaultValues, isSubmitting }: Paym
     await onSubmit(values)
   })
 
+  const handleQuickScenarioSelect = (scenarioId: QuickScenarioId) => {
+    const scenarioValues = getQuickScenarioValues(scenarioId)
+    if (!scenarioValues) {
+      return
+    }
+    reset(scenarioValues)
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -72,7 +62,28 @@ export function PaymentSimulator({ onSubmit, defaultValues, isSubmitting }: Paym
         <CardDescription>테스트 결제 정보를 입력하고 리스크 점수를 확인하세요.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="space-y-4" onSubmit={submitHandler}>
+        <form className="space-y-6" onSubmit={submitHandler}>
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">빠른 시나리오</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {QUICK_SCENARIOS.map((scenario) => (
+                <Button
+                  key={scenario.id}
+                  type="button"
+                  variant="secondary"
+                  className="h-auto items-start justify-start text-left"
+                  disabled={submitting}
+                  onClick={() => handleQuickScenarioSelect(scenario.id)}
+                >
+                  <span className="flex flex-col">
+                    <span className="text-sm font-semibold">{scenario.label}</span>
+                    <span className="text-xs text-muted-foreground">{scenario.description}</span>
+                  </span>
+                </Button>
+              ))}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="amount">
               결제 금액 (원)
