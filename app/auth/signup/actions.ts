@@ -1,21 +1,15 @@
 'use server'
 
-import { redirect } from 'next/navigation'
-import { signupSchema } from '@/lib/validation/auth'
 import { createSupabaseAdminClient, createSupabaseServerClient } from '@/lib/supabase/server'
-
-export type SignupActionState = {
-  status: 'idle' | 'error'
-  message?: string
-}
-
-export const signupInitialState: SignupActionState = { status: 'idle' }
+import { signupSchema } from '@/lib/validation/auth'
+import { redirect } from 'next/navigation'
+import type { SignupActionState } from './state'
 
 export async function signupAction(
   prevState: SignupActionState,
   formData: FormData,
 ): Promise<SignupActionState> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
   const admin = createSupabaseAdminClient()
 
   const parsed = signupSchema.safeParse({

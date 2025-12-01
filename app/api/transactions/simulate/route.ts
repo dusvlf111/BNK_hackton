@@ -1,15 +1,15 @@
-import { NextResponse } from 'next/server'
-import type { SupabaseClient } from '@supabase/supabase-js'
-import { paymentSimulatorSchema } from '@/lib/payment-simulator'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getUserPattern } from '@/lib/user-pattern'
-import { processSimulationRequest, type InsertTransactionInput } from '@/lib/transactions/simulator'
-import type { Database } from '@/types/database.types'
-import type { TransactionAction } from '@/types/transaction.types'
+import { paymentSimulatorSchema } from '@/lib/payment-simulator';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { processSimulationRequest, type InsertTransactionInput } from '@/lib/transactions/simulator';
+import { getUserPattern } from '@/lib/user-pattern';
+import type { Database } from '@/types/database.types';
+import type { TransactionAction } from '@/types/transaction.types';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const supabase = createSupabaseServerClient()
+    const supabase = await createSupabaseServerClient()
 
     const {
       data: { user },

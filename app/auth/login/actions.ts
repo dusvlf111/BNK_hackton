@@ -1,21 +1,15 @@
 'use server'
 
-import { redirect } from 'next/navigation'
-import { loginSchema } from '@/lib/validation/auth'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-
-export type LoginActionState = {
-  status: 'idle' | 'error'
-  message?: string
-}
-
-export const loginInitialState: LoginActionState = { status: 'idle' }
+import { loginSchema } from '@/lib/validation/auth'
+import { redirect } from 'next/navigation'
+import type { LoginActionState } from './state'
 
 export async function loginAction(
   prevState: LoginActionState,
   formData: FormData,
 ): Promise<LoginActionState> {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient()
 
   const parsed = loginSchema.safeParse({
     email: formData.get('email'),

@@ -1,33 +1,43 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { useFormState } from 'react-dom'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { loginAction, loginInitialState } from './actions'
-import { loginSchema, type LoginFormValues } from '@/lib/validation/auth'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { loginSchema, type LoginFormValues } from "@/lib/validation/auth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { startTransition, useActionState } from "react";
+import { useForm } from "react-hook-form";
+import { loginAction } from "./actions";
+import { loginInitialState } from "./state";
 
 export default function LoginPage() {
-  const [state, formAction] = useFormState(loginAction, loginInitialState)
+  const [state, formAction] = useActionState(loginAction, loginInitialState);
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
-  })
+    defaultValues: { email: "", password: "" },
+  });
 
-  const onSubmit = handleSubmit(async (values) => {
-    const formData = new FormData()
+  const onSubmit = handleSubmit((values) => {
+    const formData = new FormData();
     Object.entries(values).forEach(([key, value]) => {
-      formData.append(key, value ?? '')
-    })
-    await formAction(formData)
-  })
+      formData.append(key, value ?? "");
+    });
+    startTransition(() => {
+      formAction(formData);
+    });
+  });
 
   return (
     <Card>
@@ -41,8 +51,15 @@ export default function LoginPage() {
             <label className="text-sm font-medium" htmlFor="email">
               이메일
             </label>
-            <Input id="email" type="email" autoComplete="email" {...register('email')} />
-            {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              {...register("email")}
+            />
+            {errors.email && (
+              <p className="text-sm text-red-600">{errors.email.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="password">
@@ -52,13 +69,17 @@ export default function LoginPage() {
               id="password"
               type="password"
               autoComplete="current-password"
-              {...register('password')}
+              {...register("password")}
             />
-            {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
+            {errors.password && (
+              <p className="text-sm text-red-600">{errors.password.message}</p>
+            )}
           </div>
-          {state.status === 'error' && <p className="text-sm text-red-600">{state.message}</p>}
+          {state.status === "error" && (
+            <p className="text-sm text-red-600">{state.message}</p>
+          )}
           <Button className="w-full" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? '처리 중...' : '로그인'}
+            {isSubmitting ? "처리 중..." : "로그인"}
           </Button>
         </form>
       </CardContent>
@@ -69,5 +90,5 @@ export default function LoginPage() {
         </Link>
       </CardFooter>
     </Card>
-  )
+  );
 }
