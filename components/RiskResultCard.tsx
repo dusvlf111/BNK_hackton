@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import React, { type ReactNode } from 'react'
 import { AlertTriangle, CheckCircle2, PhoneCall, ShieldAlert } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/components/lib/utils'
