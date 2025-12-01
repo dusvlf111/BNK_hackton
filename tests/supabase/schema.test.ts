@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createClient } from '@supabase/supabase-js'
+import { randomUUID } from 'node:crypto'
 
 const requiredEnvVars = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const
 const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key])
@@ -25,6 +26,22 @@ async function expectTableReadable(table: string) {
   expect(error).toBeNull()
 }
 
+async function createTestUser() {
+  if (!supabase) throw new Error('Supabase client not initialised')
+  const email = `test-${randomUUID()}@example.com`
+  const { data, error } = await supabase
+    .from('users')
+    .insert({ email, role: 'user', name: 'Constraint Tester' })
+    .select('id')
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data!.id
+}
+
 describe('Database core tables', () => {
   const tables = ['users', 'transactions', 'voice_calls', 'guardians', 'alerts']
 
@@ -33,4 +50,34 @@ describe('Database core tables', () => {
       await expectTableReadable(table)
     })
   })
+})
+
+runTest('transactions risk_score check constraint', async () => {
+  if (!supabase) return
+  const userId = await createTestUser()
+
+  const { error } = await supabase.from('transactions').insert({
+    user_id: userId,
+    amount: 100,
+    merchant_name: 'Test',
+    merchant_category: '테스트',
+    risk_score: 200,
+  })
+
+  expect(error?.message).toMatch(/risk_score/)
+})
+
+runTest('transactions status enum check', async () => {
+  if (!supabase) return
+  const userId = await createTestUser()
+
+  const { error } = await supabase.from('transactions').insert({
+    user_id: userId,
+    amount: 100,
+    merchant_name: 'Test',
+    merchant_category: '테스트',
+    status: 'invalid_status',
+  })
+
+  expect(error?.message).toMatch(/status/)
 })
