@@ -39,6 +39,7 @@
     "@types/react-dom": "^19.2.3",
     "dotenv": "^17.2.3",
     "eslint": "^9.39.1",
+    "jsdom": "^25.0.0",
     "prettier": "^3.6.2",
     "supabase": "^2.64.2",
     "typescript": "^5.2.2",
