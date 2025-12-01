@@ -1,11 +1,15 @@
-'use client'
+"use client";
 
-import { useMemo } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   MERCHANT_CATEGORIES,
   QUICK_SCENARIOS,
@@ -13,58 +17,76 @@ import {
   paymentSimulatorSchema,
   type PaymentSimulatorFormValues,
   type QuickScenarioId,
-} from '@/lib/payment-simulator'
-import type { PaymentSimulationInput } from '@/types/transaction.types'
+} from "@/lib/payment-simulator";
+import type { PaymentSimulationInput } from "@/types/transaction.types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMemo } from "react";
+import { useForm } from "react-hook-form";
 
 interface PaymentSimulatorProps {
-  onSubmit: (values: PaymentSimulationInput) => Promise<void> | void
-  defaultValues?: Partial<PaymentSimulatorFormValues>
-  isSubmitting?: boolean
+  onSubmit: (values: PaymentSimulationInput) => Promise<void> | void;
+  defaultValues?: Partial<PaymentSimulatorFormValues>;
+  isSubmitting?: boolean;
 }
 
-export function PaymentSimulator({ onSubmit, defaultValues, isSubmitting }: PaymentSimulatorProps) {
-  const currentHour = useMemo(() => new Date().getHours(), [])
+export function PaymentSimulator({
+  onSubmit,
+  defaultValues,
+  isSubmitting,
+}: PaymentSimulatorProps) {
+  const currentHour = useMemo(() => new Date().getHours(), []);
 
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors, isValid, isSubmitting: formSubmitting },
-  } = useForm<PaymentSimulatorFormValues>({
+  } = useForm({
     resolver: zodResolver(paymentSimulatorSchema),
-    mode: 'onChange',
+    mode: "onChange",
     defaultValues: {
       amount: defaultValues?.amount ?? 5_000,
-      merchant_name: defaultValues?.merchant_name ?? '',
-      merchant_category: defaultValues?.merchant_category ?? MERCHANT_CATEGORIES[0],
+      merchant_name: defaultValues?.merchant_name ?? "",
+      merchant_category:
+        defaultValues?.merchant_category ?? MERCHANT_CATEGORIES[0],
       hour: defaultValues?.hour ?? currentHour,
     },
-  })
+  });
 
-  const submitting = isSubmitting ?? formSubmitting
+  const submitting = isSubmitting ?? formSubmitting;
 
   const submitHandler = handleSubmit(async (values) => {
-    await onSubmit(values)
-  })
+    const payload: PaymentSimulationInput = {
+      amount: values.amount,
+      merchant_name: values.merchant_name,
+      merchant_category: values.merchant_category,
+      hour: values.hour,
+    };
+    await onSubmit(payload);
+  });
 
   const handleQuickScenarioSelect = (scenarioId: QuickScenarioId) => {
-    const scenarioValues = getQuickScenarioValues(scenarioId)
+    const scenarioValues = getQuickScenarioValues(scenarioId);
     if (!scenarioValues) {
-      return
+      return;
     }
-    reset(scenarioValues)
-  }
+    reset(scenarioValues);
+  };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>결제 시뮬레이터</CardTitle>
-        <CardDescription>테스트 결제 정보를 입력하고 리스크 점수를 확인하세요.</CardDescription>
+        <CardDescription>
+          테스트 결제 정보를 입력하고 리스크 점수를 확인하세요.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form className="space-y-6" onSubmit={submitHandler}>
           <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">빠른 시나리오</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              빠른 시나리오
+            </p>
             <div className="grid gap-2 sm:grid-cols-3">
               {QUICK_SCENARIOS.map((scenario) => (
                 <Button
@@ -76,8 +98,12 @@ export function PaymentSimulator({ onSubmit, defaultValues, isSubmitting }: Paym
                   onClick={() => handleQuickScenarioSelect(scenario.id)}
                 >
                   <span className="flex flex-col">
-                    <span className="text-sm font-semibold">{scenario.label}</span>
-                    <span className="text-xs text-muted-foreground">{scenario.description}</span>
+                    <span className="text-sm font-semibold">
+                      {scenario.label}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {scenario.description}
+                    </span>
                   </span>
                 </Button>
               ))}
@@ -95,9 +121,11 @@ export function PaymentSimulator({ onSubmit, defaultValues, isSubmitting }: Paym
               min={1000}
               max={10_000_000}
               placeholder="예: 5000"
-              {...register('amount', { valueAsNumber: true })}
+              {...register("amount", { valueAsNumber: true })}
             />
-            {errors.amount && <p className="text-sm text-red-600">{errors.amount.message}</p>}
+            {errors.amount && (
+              <p className="text-sm text-red-600">{errors.amount.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -109,10 +137,12 @@ export function PaymentSimulator({ onSubmit, defaultValues, isSubmitting }: Paym
               type="text"
               placeholder="예: GS25 강남점"
               maxLength={50}
-              {...register('merchant_name')}
+              {...register("merchant_name")}
             />
             {errors.merchant_name && (
-              <p className="text-sm text-red-600">{errors.merchant_name.message}</p>
+              <p className="text-sm text-red-600">
+                {errors.merchant_name.message}
+              </p>
             )}
           </div>
 
@@ -123,7 +153,7 @@ export function PaymentSimulator({ onSubmit, defaultValues, isSubmitting }: Paym
             <select
               id="merchant_category"
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              {...register('merchant_category')}
+              {...register("merchant_category")}
             >
               {MERCHANT_CATEGORIES.map((category) => (
                 <option key={category} value={category}>
@@ -132,7 +162,9 @@ export function PaymentSimulator({ onSubmit, defaultValues, isSubmitting }: Paym
               ))}
             </select>
             {errors.merchant_category && (
-              <p className="text-sm text-red-600">{errors.merchant_category.message}</p>
+              <p className="text-sm text-red-600">
+                {errors.merchant_category.message}
+              </p>
             )}
           </div>
 
@@ -146,13 +178,19 @@ export function PaymentSimulator({ onSubmit, defaultValues, isSubmitting }: Paym
               min={0}
               max={23}
               placeholder="예: 13"
-              {...register('hour', { valueAsNumber: true })}
+              {...register("hour", { valueAsNumber: true })}
             />
-            {errors.hour && <p className="text-sm text-red-600">{errors.hour.message}</p>}
+            {errors.hour && (
+              <p className="text-sm text-red-600">{errors.hour.message}</p>
+            )}
           </div>
 
-          <Button className="w-full" type="submit" disabled={!isValid || submitting}>
-            {submitting ? '계산 중...' : '리스크 분석 요청'}
+          <Button
+            className="w-full"
+            type="submit"
+            disabled={!isValid || submitting}
+          >
+            {submitting ? "계산 중..." : "리스크 분석 요청"}
           </Button>
         </form>
       </CardContent>
@@ -160,5 +198,5 @@ export function PaymentSimulator({ onSubmit, defaultValues, isSubmitting }: Paym
         입력 데이터는 실제 결제가 아닌 시뮬레이션 용도로만 사용됩니다.
       </CardFooter>
     </Card>
-  )
+  );
 }
