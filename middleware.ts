@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/types/database.types'
 
 const PROTECTED_PATHS = ['/dashboard', '/transactions', '/alerts']
@@ -9,9 +9,33 @@ function isProtectedPath(pathname: string) {
   return PROTECTED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
 }
 
+function getSupabaseCredentials() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !anonKey) {
+    throw new Error('Missing Supabase environment variables in middleware')
+  }
+
+  return { url, anonKey }
+}
+
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient<Database>({ req, res })
+  const { url, anonKey } = getSupabaseCredentials()
+  const supabase = createServerClient<Database>(url, anonKey, {
+    cookies: {
+      getAll() {
+        return req.cookies.getAll().map(({ name, value }) => ({ name, value }))
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          req.cookies.set({ name, value, ...options })
+          res.cookies.set({ name, value, ...options })
+        })
+      },
+    },
+  })
   const {
     data: { session },
   } = await supabase.auth.getSession()

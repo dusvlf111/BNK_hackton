@@ -1,6 +1,6 @@
 'use client'
 
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/database.types'
 
 function getSupabaseBrowserConfig() {
