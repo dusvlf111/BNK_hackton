@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { signupSchema, type SignupFormValues } from "@/lib/validation/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { startTransition, useActionState } from "react";
+import { useActionState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { signupAction } from "./actions";
 import { signupInitialState } from "./state";
@@ -33,14 +33,16 @@ const fieldConfigs: Record<keyof SignupFormValues, FieldConfig> = {
   },
   name: { label: "이름", type: "text", autoComplete: "name" },
   phone: { label: "전화번호", type: "tel", autoComplete: "tel" },
+  birth: { label: "생년월일 8자리", type: "text", autoComplete: "bday" },
 };
 
 export default function SignupPage() {
+  const [isPending, startTransition] = useTransition();
   const [state, formAction] = useActionState(signupAction, signupInitialState);
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -48,6 +50,7 @@ export default function SignupPage() {
       password: "",
       name: "",
       phone: "",
+      birth: "",
     },
   });
 
@@ -70,7 +73,7 @@ export default function SignupPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="space-y-4" onSubmit={onSubmit}>
+        <form className="space-y-4" onSubmit={onSubmit} noValidate>
           {Object.entries(fieldConfigs).map(([key, config]) => (
             <div key={key} className="space-y-2">
               <label className="text-sm font-medium" htmlFor={key}>
@@ -92,8 +95,8 @@ export default function SignupPage() {
           {state.status === "error" && (
             <p className="text-sm text-red-600">{state.message}</p>
           )}
-          <Button className="w-full" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "처리 중..." : "회원가입"}
+          <Button className="w-full" type="submit" disabled={isPending}>
+            {isPending ? "처리 중..." : "회원가입"}
           </Button>
         </form>
       </CardContent>

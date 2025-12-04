@@ -1,9 +1,12 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-import { createSupabaseAdminClient } from '@/lib/supabase/server'
-import type { Database } from '@/types/database.types'
 import type { UserPatternSummary } from '@/types/transaction.types'
+import prisma from './prisma'
 
-export type PatternTransactionSample = Pick<Database['public']['Tables']['transactions']['Row'], 'amount' | 'created_at' | 'merchant_category' | 'merchant_name'>
+export interface PatternTransactionSample {
+  amount: number
+  created_at: string
+  merchant_category: string
+  merchant_name: string
+}
 
 export const DEFAULT_USER_PATTERN: UserPatternSummary = {
   avg_amount: 50_000,
@@ -18,12 +21,11 @@ export const DEFAULT_USER_PATTERN: UserPatternSummary = {
 }
 
 interface GetUserPatternOptions {
-  client?: SupabaseClient<Database>
   fetchTransactions?: () => Promise<PatternTransactionSample[]>
 }
 
 export async function getUserPattern(userId: string, options: GetUserPatternOptions = {}): Promise<UserPatternSummary> {
-  const fetchTransactions = options.fetchTransactions ?? (async () => fetchRecentTransactions(userId, options.client))
+  const fetchTransactions = options.fetchTransactions ?? (async () => fetchRecentTransactions(userId))
   const transactions = await fetchTransactions()
 
   if (!transactions || transactions.length < 5) {
@@ -33,24 +35,35 @@ export async function getUserPattern(userId: string, options: GetUserPatternOpti
   return buildUserPatternFromTransactions(transactions)
 }
 
-async function fetchRecentTransactions(userId: string, client?: SupabaseClient<Database>) {
-  const supabase = client ?? createSupabaseAdminClient()
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+async function fetchRecentTransactions(userId: string) {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
 
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('amount, created_at, merchant_category, merchant_name')
-    .eq('user_id', userId)
-    .eq('status', 'approved')
-    .gte('created_at', thirtyDaysAgo)
-    .order('created_at', { ascending: false })
-    .limit(200)
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      user_id: userId,
+      status: 'approved',
+      created_at: {
+        gte: thirtyDaysAgo,
+      },
+    },
+    orderBy: {
+      created_at: 'desc',
+    },
+    take: 200,
+    select: {
+      amount: true,
+      created_at: true,
+      merchant_category: true,
+      merchant_name: true,
+    },
+  })
 
-  if (error) {
-    throw new Error(`Failed to fetch user pattern transactions: ${error.message}`)
-  }
-
-  return data ?? []
+  return transactions.map<PatternTransactionSample>((transaction) => ({
+    amount: Number(transaction.amount),
+    created_at: transaction.created_at.toISOString(),
+    merchant_category: transaction.merchant_category,
+    merchant_name: transaction.merchant_name,
+  }))
 }
 
 export function buildUserPatternFromTransactions(transactions: PatternTransactionSample[]): UserPatternSummary {

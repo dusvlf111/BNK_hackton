@@ -13,17 +13,18 @@ import { Input } from "@/components/ui/input";
 import { loginSchema, type LoginFormValues } from "@/lib/validation/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { startTransition, useActionState } from "react";
+import { useActionState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { loginAction } from "./actions";
 import { loginInitialState } from "./state";
 
 export default function LoginPage() {
+  const [isPending, startTransition] = useTransition();
   const [state, formAction] = useActionState(loginAction, loginInitialState);
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -46,7 +47,7 @@ export default function LoginPage() {
         <CardDescription>등록된 계정 정보로 로그인하세요.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="space-y-4" onSubmit={onSubmit}>
+        <form className="space-y-4" onSubmit={onSubmit} noValidate>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="email">
               이메일
@@ -78,8 +79,12 @@ export default function LoginPage() {
           {state.status === "error" && (
             <p className="text-sm text-red-600">{state.message}</p>
           )}
-          <Button className="w-full" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "처리 중..." : "로그인"}
+          <Button
+            className="w-full transition-opacity duration-300"
+            type="submit"
+            disabled={isPending}
+          >
+            {isPending ? "처리 중..." : "로그인"}
           </Button>
         </form>
       </CardContent>

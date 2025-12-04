@@ -1,0 +1,139 @@
+generator client {
+  provider               = "prisma-client"
+  output                 = "../generated/prisma"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz(6)
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(6)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime  @db.Timestamptz(6)
+  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId])
+}
+
+model alert {
+  id                           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                      String
+  guardian_id                  String?
+  transaction_id               String?      @db.Uuid
+  type                         String
+  severity                     String
+  message                      String?
+  payload                      Json         @default("{}")
+  is_read                      Boolean      @default(false)
+  created_at                   DateTime     @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  user_alert_guardian_idTouser user?        @relation("alert_guardian_idTouser", fields: [guardian_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "alerts_guardian_fk")
+  transaction                  transaction? @relation(fields: [transaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "alerts_transaction_fk")
+  user_alert_user_idTouser     user         @relation("alert_user_idTouser", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "alerts_user_fk")
+
+  @@index([guardian_id, is_read], map: "alerts_guardian_is_read_idx")
+}
+
+model guardian {
+  id                              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                         String
+  guardian_id                     String
+  permissions                     Json     @default("{}")
+  status                          String   @default("pending")
+  created_at                      DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at                      DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  user_guardian_guardian_idTouser user     @relation("guardian_guardian_idTouser", fields: [guardian_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "guardians_guardian_fk")
+  user_guardian_user_idTouser     user     @relation("guardian_user_idTouser", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "guardians_user_fk")
+}
+
+model session {
+  id        String   @id
+  expiresAt DateTime @db.Timestamptz(6)
+  token     String   @unique
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @db.Timestamptz(6)
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model transaction {
+  id                                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                            String
+  guardian_id                        String?
+  amount                             Decimal      @db.Decimal(14, 2)
+  merchant_name                      String
+  merchant_category                  String
+  risk_score                         Int          @default(0)
+  risk_level                         String       @default("low")
+  risk_reasons                       Json         @default("[]")
+  status                             String       @default("pending")
+  voice_call_sid                     String?
+  voice_responses                    Json         @default("[]")
+  guardian_action                    String?
+  created_at                         DateTime     @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at                         DateTime     @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  alert                              alert[]
+  user_transaction_guardian_idTouser user?        @relation("transaction_guardian_idTouser", fields: [guardian_id], references: [id], onUpdate: NoAction, map: "transactions_guardian_fk")
+  user_transaction_user_idTouser     user         @relation("transaction_user_idTouser", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "transactions_user_fk")
+  voice_call                         voice_call[]
+
+  @@index([user_id, created_at(sort: Desc)], map: "transactions_user_created_idx")
+}
+
+model user {
+  id                                        String        @id
+  name                                      String
+  email                                     String        @unique
+  emailVerified                             Boolean
+  image                                     String?
+  createdAt                                 DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt                                 DateTime      @default(now()) @db.Timestamptz(6)
+  role                                      String?
+  account                                   account[]
+  alert_alert_guardian_idTouser             alert[]       @relation("alert_guardian_idTouser")
+  alert_alert_user_idTouser                 alert[]       @relation("alert_user_idTouser")
+  guardian_guardian_guardian_idTouser       guardian[]    @relation("guardian_guardian_idTouser")
+  guardian_guardian_user_idTouser           guardian[]    @relation("guardian_user_idTouser")
+  session                                   session[]
+  transaction_transaction_guardian_idTouser transaction[] @relation("transaction_guardian_idTouser")
+  transaction_transaction_user_idTouser     transaction[] @relation("transaction_user_idTouser")
+}
+
+model verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([identifier])
+}
+
+model voice_call {
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  transaction_id   String      @db.Uuid
+  call_sid         String
+  duration_seconds Int?
+  responses        Json        @default("[]")
+  recording_url    String?
+  created_at       DateTime    @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  transaction      transaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "voice_calls_transaction_fk")
+}

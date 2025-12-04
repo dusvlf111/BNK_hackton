@@ -1,21 +1,20 @@
+import { auth } from '@/lib/auth';
 import { paymentSimulatorSchema } from '@/lib/payment-simulator';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import prisma from '@/lib/prisma';
 import { processSimulationRequest, type InsertTransactionInput } from '@/lib/transactions/simulator';
 import { getUserPattern } from '@/lib/user-pattern';
-import type { Database } from '@/types/database.types';
 import type { TransactionAction } from '@/types/transaction.types';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { headers } from 'next/headers';
 import { NextResponse } from "next/server";
+import z from 'zod';
 
 export async function POST(req: Request) {
   try {
-    const supabase = await createSupabaseServerClient()
+    const session = await auth.api.getSession({
+        headers: await headers() // you need to pass the headers object.
+    })
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -29,14 +28,14 @@ export async function POST(req: Request) {
     const validation = paymentSimulatorSchema.safeParse(body)
 
     if (!validation.success) {
-      return NextResponse.json({ error: 'ValidationError', details: validation.error.flatten() }, { status: 400 })
+      return NextResponse.json({ error: 'ValidationError', details: z.treeifyError(validation.error) }, { status: 400 })
     }
 
     const result = await processSimulationRequest(
-      { input: validation.data, userId: user.id },
+      { input: validation.data, userId: session.user.id },
       {
-        getUserPattern: (userId) => getUserPattern(userId, { client: supabase }),
-        insertTransaction: (payload) => insertTransactionRecord(supabase, payload),
+        getUserPattern: (userId) => getUserPattern(userId),
+        insertTransaction: (payload) => insertTransactionRecord(payload),
       },
     )
 
@@ -48,14 +47,12 @@ export async function POST(req: Request) {
 }
 
 async function insertTransactionRecord(
-  supabase: SupabaseClient<Database>,
   payload: InsertTransactionInput,
 ): Promise<{ id: string }> {
   const status = mapActionToStatus(payload.action)
 
-  const { data, error } = await supabase
-    .from('transactions')
-    .insert({
+  const transaction = await prisma.transaction.create({
+    data: {
       user_id: payload.userId,
       amount: payload.amount,
       merchant_name: payload.merchant_name,
@@ -64,15 +61,11 @@ async function insertTransactionRecord(
       risk_level: payload.risk_level,
       risk_reasons: payload.risk_reasons,
       status,
-    })
-    .select('id')
-    .single()
+    },
+    select: { id: true },
+  })
 
-  if (error || !data) {
-    throw new Error(error?.message ?? 'Failed to insert transaction')
-  }
-
-  return { id: data.id }
+  return { id: transaction.id }
 }
 
 function mapActionToStatus(action: TransactionAction) {

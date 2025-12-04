@@ -1,7 +1,9 @@
 'use server'
 
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { auth } from '@/lib/auth'
 import { loginSchema } from '@/lib/validation/auth'
+import { APIError } from 'better-auth/api'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { LoginActionState } from './state'
 
@@ -9,8 +11,6 @@ export async function loginAction(
   prevState: LoginActionState,
   formData: FormData,
 ): Promise<LoginActionState> {
-  const supabase = await createSupabaseServerClient()
-
   const parsed = loginSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),
@@ -21,12 +21,23 @@ export async function loginAction(
   }
 
   const { email, password } = parsed.data
-
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-  if (error) {
-    return { status: 'error', message: error.message }
+  try {
+    const data = await auth.api.signInEmail({
+      body: {
+        email, // required
+        password, // required
+        rememberMe: true,
+      },
+      // This endpoint requires session cookies.
+      headers: await headers(),
+    })
+  } catch (error) {
+    if (error instanceof APIError) {
+      return { status: 'error', message: error.message }
+    }
+    
+    console.error('Unknown error during login', error)
+    return { status: 'error', message: '알 수 없는 오류가 발생했습니다.' }
   }
-
-  redirect('/dashboard')
+  redirect('/')
 }
