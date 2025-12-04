@@ -123,7 +123,7 @@ create table transaction
     risk_reasons      jsonb                    default '[]'::jsonb                  not null,
     status            text                     default 'pending'::text              not null
         constraint transactions_status_check
-            check (status = ANY (ARRAY ['pending'::text, 'requires_review'::text, 'blocked'::text, 'approved'::text])),
+            check (status = ANY (ARRAY ['approved'::text, 'pending_verification'::text, 'blocked'::text])),
     voice_call_sid    text,
     voice_responses   jsonb                    default '[]'::jsonb                  not null,
     guardian_action   text,
